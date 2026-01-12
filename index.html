@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MEDGRUPOrdle</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+
+    <header>
+      <h1>MEDGRUPOrdle</h1>
+      <p>Adivinhe o diagnóstico do dia</p>
+    </header>
+
+    <section class="input-area">
+      <div class="input-wrapper">
+        <input id="guessInput" type="text" placeholder="Digite um diagnóstico..." autocomplete="off">
+        <div id="autocomplete" class="autocomplete hidden"></div>
+      </div>
+      <button id="guessBtn">Confirmar</button>
+      <span id="attempts" class="counter">0 / 15</span>
+    </section>
+
+    <section class="legend">
+      <div><span class="box success"></span> Certo</div>
+      <div><span class="box partial"></span> Parcial</div>
+      <div><span class="box error"></span> Errado</div>
+    </section>
+
+    <section class="board">
+      <div class="row header">
+        <div class="cell">Diagnóstico</div>
+        <div class="cell">Sintomas</div>
+        <div class="cell">Grupo de Risco</div>
+        <div class="cell">Área</div>
+        <div class="cell">Apostilas</div>
+      </div>
+      <div id="rows"></div>
+    </section>
+
+    <section id="result" class="result hidden"></section>
+
+    <footer class="watermark">
+      Larissa Nacif
+    </footer>
+
+  </div>
+
+  <script src="cases.js"></script>
+  <script src="scripts.js"></script>
+</body>
+</html>
