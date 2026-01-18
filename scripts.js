@@ -1,10 +1,24 @@
-const todayString = new Date().toDateString(); 
-const seed = todayString.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-const dailyIndex = seed % cases.length;
+const availableDates = [
+    "Sun Jan 18 2026",
+    "Mon Jan 19 2026",
+    "Tue Jan 20 2026"
+];
+
+let currentSelectedDate = localStorage.getItem("MED_SelectedDate") || new Date().toDateString();
+if (!availableDates.includes(currentSelectedDate)) currentSelectedDate = availableDates[0];
+
+// Lógica para garantir diagnósticos diferentes nos 3 dias da apresentação
+const dateToIndexMap = {
+    "Sun Jan 18 2026": 0, // Síndrome de má absorção
+    "Mon Jan 19 2026": 1, // Pancreatite aguda
+    "Tue Jan 20 2026": 2  // Cirrose
+};
+
+const dailyIndex = dateToIndexMap[currentSelectedDate];
 const answer = cases[dailyIndex];
 
-const maxAttempts = 10; // Alterado para 10
-const storageKey = "MEDGRUPOrdle_" + todayString.replace(/ /g, "_");
+const maxAttempts = 10;
+const storageKey = "MEDGRUPOrdle_" + currentSelectedDate.replace(/ /g, "_");
 
 let state = JSON.parse(localStorage.getItem(storageKey)) || {
   guesses: [], 
@@ -21,8 +35,23 @@ const resultContainer = document.getElementById("result");
 const attemptsSpan = document.getElementById("attempts");
 const timerSpan = document.getElementById("liveTimer");
 const guessBtn = document.getElementById("guessBtn");
+const daySelect = document.getElementById("day-select");
 
 let timerInterval;
+
+// Preencher o seletor de datas
+availableDates.forEach(dateStr => {
+    const opt = document.createElement("option");
+    opt.value = dateStr;
+    opt.textContent = new Date(dateStr).toLocaleDateString('pt-BR');
+    if(dateStr === currentSelectedDate) opt.selected = true;
+    daySelect.appendChild(opt);
+});
+
+daySelect.onchange = (e) => {
+    localStorage.setItem("MED_SelectedDate", e.target.value);
+    window.location.reload();
+};
 
 function formatDuration(ms) {
   const totalSeconds = Math.floor(ms / 1000);
@@ -40,18 +69,23 @@ function startTimer() {
   }, 1000);
 }
 
-updateUI();
-state.guesses.forEach(guessName => {
-  const guessData = cases.find(c => c.name === guessName);
-  if (guessData) renderRow(guessData);
-});
+function initUI() {
+    updateUI();
+    rowsContainer.innerHTML = "";
+    state.guesses.forEach(guessName => {
+      const guessData = cases.find(c => c.name === guessName);
+      if (guessData) renderRow(guessData);
+    });
 
-if (state.startTime && !state.finished) {
-  startTimer();
-} else if (state.finished) {
-  timerSpan.textContent = formatDuration(state.endTime - state.startTime);
-  endGame(state.won);
+    if (state.startTime && !state.finished) {
+      startTimer();
+    } else if (state.finished) {
+      timerSpan.textContent = formatDuration(state.endTime - state.startTime);
+      endGame(state.won);
+    }
 }
+
+initUI();
 
 input.addEventListener("input", () => {
   const val = input.value.toLowerCase();
@@ -115,10 +149,7 @@ function renderRow(guess) {
     if (matches.length === arr2.length && arr1.length === arr2.length) {
       return { status: "success", count: 0 };
     }
-    return { 
-      status: matches.length > 0 ? "partial" : "error", 
-      count: matches.length 
-    };
+    return { status: matches.length > 0 ? "partial" : "error", count: matches.length };
   };
 
   const symp = getComparisonData(guess.symptoms, answer.symptoms);
@@ -154,7 +185,6 @@ function endGame(won) {
     ? formatDuration(state.endTime - state.startTime) 
     : timerSpan.textContent;
 
-  // Bloco de Stats (Tentativas e Tempo)
   const statsHtml = `
     <div class="stats-container">
       <div class="stat-item"><strong>Tentativas:</strong> ${state.guesses.length}/${maxAttempts}</div>
@@ -162,22 +192,19 @@ function endGame(won) {
     </div>
   `;
 
-  if (won) {
-    resultContainer.innerHTML = `
-      <h2>Parabéns! Diagnóstico Correto! 🎈</h2>
-      ${statsHtml}
-      <span class="answer-highlight">${answer.name}</span>
-      <hr style="border: 0; border-top: 1px solid #333; width: 100%; margin: 15px 0;">
-      <p>${answer.summary}</p>
-    `;
-  } else {
-    resultContainer.innerHTML = `
-      <h2>Fim de jogo 😔</h2>
-      ${statsHtml}
-      <p>O diagnóstico correto era:</p>
-      <span class="answer-highlight" style="color: var(--error)">${answer.name}</span>
-      <hr style="border: 0; border-top: 1px solid #333; width: 100%; margin: 15px 0;">
-      <p>${answer.summary}</p>
-    `;
-  }
+  const commonContent = `
+    ${statsHtml}
+    <span class="answer-highlight" style="color: ${won ? 'var(--success)' : 'var(--error)'}">${answer.name}</span>
+    <hr style="border: 0; border-top: 1px solid #333; width: 100%; margin: 15px 0;">
+    <p>${answer.summary}</p>
+    <button id="shareBtn" class="share-btn">COMPARTILHAR RESULTADO</button>
+  `;
+
+  resultContainer.innerHTML = won ? `<h2>Parabéns!🎈</h2>${commonContent}` : `<h2>Fim de jogo 😔</h2>${commonContent}`;
+
+  document.getElementById("shareBtn").onclick = () => {
+    const text = `Joguei MEDGRUPOrdle (${new Date(currentSelectedDate).toLocaleDateString('pt-BR')})\nResultado: ${state.guesses.length}/${maxAttempts}\nTempo: ${durationText}\nDiagnóstico: ${answer.name}`;
+    navigator.clipboard.writeText(text);
+    alert("Resultado copiado!");
+  };
 }
